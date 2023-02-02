@@ -1,7 +1,9 @@
 from django.test import Client, TestCase
 from django.urls import reverse
+
 from http import HTTPStatus
 
+from . import constants as c
 from ..models import Group, Post, User
 
 
@@ -10,25 +12,26 @@ class PostFormsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.creator = User.objects.create_user(
-            username='creator_name'
+            username=c.USERNAME
         )
-        cls.authorized_creator = Client()
-        cls.authorized_creator.force_login(cls.creator)
 
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-group',
-            description='Тестовое описание',
+            title=c.GROUP_TITLE,
+            slug=c.GROUP_SLUG,
+            description=c.GROUP_DESCRIPTION,
         )
 
         cls.post = Post.objects.create(
             author=cls.creator,
-            text='Тестовый пост',
+            text=c.POST_TEXT,
             group=cls.group,
         )
 
     def test_create_post(self):
         """Валидная форма создает запись в Post."""
+        self.authorized_creator = Client()
+        self.authorized_creator.force_login(self.creator)
+
         post_count = Post.objects.count()
         form_data = {
             'text': self.post.text,
@@ -48,26 +51,30 @@ class PostFormsTests(TestCase):
         )
         self.assertEqual(Post.objects.count(), post_count + 1)
         self.assertTrue(
-            Post.objects.filter(text='Тестовый пост').exists()
+            Post.objects.filter(text=c.POST_TEXT).exists()
         )
 
     def test_edit_post(self):
         """Валидная форма изменяет запись в Post."""
-        form_data = {
-            'text': self.post.text,
-            'group': self.post.group.id,
-        }
-        self.authorized_creator.post(
-            reverse('posts:post_create'),
-            data=form_data,
-            follow=True
+        ANOTHER_GROUP_TITLE = 'Другая тестовая группа'
+        ANOTHER_GROUP_SLUG = 'new-slug'
+        ANOTHER_GROUP_DESCRIPTION = 'Новое описание'
+        ANOTHER_POST_TEXT = 'Новый текст'
+
+        group_2 = Group.objects.create(
+            title=ANOTHER_GROUP_TITLE,
+            slug=ANOTHER_GROUP_SLUG,
+            description=ANOTHER_GROUP_DESCRIPTION,
         )
-        post = Post.objects.get(id=self.post.group.id)
-        self.authorized_creator.get(f'/posts/{post.pk}/edit/')
+
+        self.authorized_creator = Client()
+        self.authorized_creator.force_login(self.creator)
+
         form_data = {
-            'text': 'Измененный текст',
-            'group': self.post.group.id,
+            'text': ANOTHER_POST_TEXT,
+            'group': group_2.pk,
         }
+
         response = self.authorized_creator.post(
             reverse('posts:edit', kwargs={'post_id': self.post.group.id}),
             data=form_data,
@@ -75,4 +82,4 @@ class PostFormsTests(TestCase):
         )
         post_edit = Post.objects.get(id=self.post.group.id)
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertEqual(post_edit.text, 'Измененный текст')
+        self.assertEqual(post_edit.text, ANOTHER_POST_TEXT)

@@ -2,6 +2,7 @@ from django.db import models
 from django.contrib.auth import get_user_model
 
 TITLE_MAX_LENGTH = 200
+STR_DISPLAYED_CHAR = 15
 
 User = get_user_model()
 
@@ -44,4 +45,4 @@ class Post(models.Model):
         ordering = ('-pub_date', )
 
     def __str__(self):
-        return self.text[:15]
+        return self.text[:STR_DISPLAYED_CHAR]

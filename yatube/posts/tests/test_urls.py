@@ -1,6 +1,7 @@
 from django.test import TestCase, Client
 from http import HTTPStatus
 
+from . import constants as c
 from ..models import User, Group, Post
 
 
@@ -10,26 +11,26 @@ class PostURLTests(TestCase):
         super().setUpClass()
         cls.guest_client = Client()
         cls.creator = User.objects.create_user(
-            username='test_author'
+            username=c.CREATOR_USERNAME
         )
         cls.authorized_creator = Client()
         cls.authorized_creator.force_login(cls.creator)
         cls.viewer = User.objects.create_user(
-            username='test_not_author'
+            username=c.VIEWER_USERNAME
         )
         cls.authorized_viewer = Client()
         cls.authorized_viewer.force_login(cls.viewer)
 
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-group',
-            description='Тестовое описание',
+            title=c.GROUP_TITLE,
+            slug=c.GROUP_SLUG,
+            description=c.GROUP_DESCRIPTION,
         )
 
         cls.post = Post.objects.create(
             author=cls.creator,
             group=cls.group,
-            text='Тестовый пост',
+            text=c.POST_TEXT,
         )
 
         cls.public_pages = (
@@ -48,17 +49,21 @@ class PostURLTests(TestCase):
         for url in self.public_pages:
             response = self.guest_client.get(url)
             self.assertEqual(response.status_code, HTTPStatus.OK)
+        for url in self.private_pages:
+            response = self.guest_client.get(url)
+            self.assertEqual(response.status_code, HTTPStatus.FOUND)
+
+        response = self.guest_client.get(c.UNEXISTING_PAGE_URL)
+        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
 
     def test_private_urls_exist_at_desired_location(self):
         """Доступ авторизованных пользователей"""
         for url in self.private_pages:
             response = self.authorized_creator.get(url)
             self.assertEqual(response.status_code, HTTPStatus.OK)
-
-    def test_unexisting_url_returns_404(self):
-        """Несуществующая страница возвращает 404 статус-код"""
-        response = self.guest_client.get('/unexisting_page/')
-        self.assertEqual(response.status_code, HTTPStatus.NOT_FOUND)
+        for url in self.public_pages:
+            response = self.guest_client.get(url)
+            self.assertEqual(response.status_code, HTTPStatus.OK)
 
     def test_create_url_redirects_anonymous(self):
         """Перенаправление неавторизованного пользователя

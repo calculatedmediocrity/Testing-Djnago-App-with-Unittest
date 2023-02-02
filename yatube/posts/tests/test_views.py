@@ -2,6 +2,7 @@ from django.test import TestCase, Client
 from django.urls import reverse
 from django import forms
 
+from . import constants as c
 from ..models import User, Group, Post
 
 
@@ -10,34 +11,27 @@ class PostViewsTests(TestCase):
     def setUpClass(cls):
         super().setUpClass()
         cls.creator = User.objects.create_user(
-            username='creator_name'
+            username=c.CREATOR_USERNAME
         )
         cls.authorized_creator = Client()
         cls.authorized_creator.force_login(cls.creator)
 
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-group',
-            description='Тестовое описание',
-        )
-
-        cls.second_group = Group.objects.create(
-            title='Тестовая группа 2',
-            slug='test-group2',
-            description='Тестовое описание',
+            title=c.GROUP_TITLE,
+            slug=c.GROUP_SLUG,
+            description=c.GROUP_DESCRIPTION,
         )
 
         cls.post = Post.objects.create(
             author=cls.creator,
-            text='Тестовый пост',
+            text=c.POST_TEXT,
             group=cls.group,
         )
 
     def check_post_fields(self, post):
-        with self.subTest(post=post):
-            self.assertEqual(post.author, self.post.author)
-            self.assertEqual(post.text, self.post.text)
-            self.assertEqual(post.group.id, self.post.group.id)
+        self.assertEqual(post.author, self.post.author)
+        self.assertEqual(post.text, self.post.text)
+        self.assertEqual(post.group.id, self.post.group.id)
 
     def test_pages_uses_correct_template(self):
         """View-классы используют ожидаемые HTML-шаблоны."""
@@ -84,7 +78,8 @@ class PostViewsTests(TestCase):
     def test_post_detail_page_shows_correct_context(self):
         """Шаблон post_detail сформирован с правильным контекстом."""
         response = self.authorized_creator.get(
-            reverse('posts:post_detail', kwargs={'post_id': self.post.pk})
+            reverse(
+                'posts:post_detail', kwargs={'post_id': self.post.pk})
         )
         self.check_post_fields(response.context['post'])
 
@@ -131,10 +126,16 @@ class PostViewsTests(TestCase):
 
     def test_post_not_in_second_group(self):
         """Пост не находится на станице другой группы"""
+        second_group = Group.objects.create(
+            title='Тестовая группа 2',
+            slug='test-group2',
+            description='Тестовое описание',
+        )
+
         response = self.authorized_creator.get(
             reverse(
                 'posts:group_list',
-                kwargs={'slug': self.second_group.slug}
+                kwargs={'slug': second_group.slug}
             )
         )
         self.assertEqual(len(response.context['page_obj']), 0)
@@ -151,16 +152,19 @@ class PaginatorViewsTest(TestCase):
         cls.authorized_user.force_login(cls.user)
 
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='test-group',
-            description='Тестовое описание',
+            title=c.GROUP_TITLE,
+            slug=c.GROUP_SLUG,
+            description=c.GROUP_DESCRIPTION,
         )
-        for i in range(13):
-            Post.objects.create(
-                text=f'Пост {i}',
+
+        cls.post_qty = 13
+        Post.objects.bulk_create(
+            [Post(
                 author=cls.user,
+                text=f'{c.POST_TEXT} {post}',
                 group=cls.group
-            )
+            )for post in range(cls.post_qty)]
+        )
 
         cls.templates_url_names = [
             reverse('posts:index'),
@@ -168,12 +172,18 @@ class PaginatorViewsTest(TestCase):
             reverse('posts:profile', kwargs={'username': cls.user}),
         ]
 
-    def test_first_page_contains_ten_records(self):
-        """Проверка первой страницы пагинатора"""
-        response = self.client.get(reverse('posts:index'))
-        self.assertEqual(len(response.context['page_obj']), 10)
-
     def test_second_page_contains_three_records(self):
         """Проверка второй страницы пагинатора"""
-        response = self.client.get(reverse('posts:index') + '?page=2')
-        self.assertEqual(len(response.context['page_obj']), 3)
+        for url in self.templates_url_names:
+            with self.subTest(url=url):
+                self.assertEqual(
+                    len(self.client.get(url).context.get('page_obj')),
+                    c.POST_QTY_ON_FIRST_PAGE
+                )
+                self.assertEqual(
+                    len(self.client.get(
+                        url,
+                        {'page': 2}
+                    ).context.get('page_obj')),
+                    c.POST_QTY_ON_SECOND_PAGE
+                )

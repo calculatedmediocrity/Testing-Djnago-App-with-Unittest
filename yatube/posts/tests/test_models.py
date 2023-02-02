@@ -1,38 +1,33 @@
-from django.contrib.auth import get_user_model
 from django.test import TestCase
 
-from ..models import Group, Post
-
-STR_DISPLAYED_CHAR = 15
-
-User = get_user_model()
+from . import constants as c
+from ..models import User, Group, Post, STR_DISPLAYED_CHAR
 
 
 class PostModelTest(TestCase):
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
-        cls.user = User.objects.create_user(username='test_user')
+        cls.user = User.objects.create_user(username=c.USERNAME)
         cls.group = Group.objects.create(
-            title='Тестовая группа',
-            slug='Тестовый слаг',
-            description='Тестовое описание',
+            title=c.GROUP_TITLE,
+            slug=c.GROUP_SLUG,
+            description=c.GROUP_DESCRIPTION,
         )
         cls.post = Post.objects.create(
             author=cls.user,
-            text='Тестовый пост',
+            text=c.POST_TEXT,
         )
 
     def test_models_have_correct_object_names(self):
-        """__str__ модели Post совпадает с ожидаемым."""
-        post = PostModelTest.post
-        expected_object_name = post.text[:STR_DISPLAYED_CHAR]
-        self.assertEqual(expected_object_name, str(post))
-
-        """__str__ модели Group."""
-        group = PostModelTest.group
-        expected_object_name = group.title
-        self.assertEqual(expected_object_name, str(group))
+        """__str__ модели Post, GROUP совпадает с ожидаемым."""
+        title = (
+            (self.group, self.group.title),
+            (self.post, self.post.text[:STR_DISPLAYED_CHAR]),
+        )
+        for text, expected_object_name in title:
+            with self.subTest(expected_name=text):
+                self.assertEqual(expected_object_name, str(text))
 
     def test_verbose_name(self):
         """verbose_name в полях совпадает с ожидаемым."""
