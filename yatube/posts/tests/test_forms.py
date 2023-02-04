@@ -1,7 +1,7 @@
+from http import HTTPStatus
+
 from django.test import Client, TestCase
 from django.urls import reverse
-
-from http import HTTPStatus
 
 from . import constants as c
 from ..models import Group, Post, User
@@ -21,6 +21,12 @@ class PostFormsTests(TestCase):
             description=c.GROUP_DESCRIPTION,
         )
 
+        cls.another_group = Group.objects.create(
+            title=c.ANOTHER_GROUP_TITLE,
+            slug=c.ANOTHER_GROUP_SLUG,
+            description=c.ANOTHER_GROUP_DESCRIPTION,
+        )
+
         cls.post = Post.objects.create(
             author=cls.creator,
             text=c.POST_TEXT,
@@ -38,14 +44,14 @@ class PostFormsTests(TestCase):
             'group': self.post.group.id,
         }
         response = self.authorized_creator.post(
-            reverse('posts:post_create'),
+            reverse(c.URL_POST_CREATE),
             data=form_data,
             follow=True
         )
         self.assertRedirects(
             response,
             reverse(
-                'posts:profile',
+                c.URL_PROFILE,
                 kwargs={'username': self.post.author.username}
             )
         )
@@ -56,30 +62,19 @@ class PostFormsTests(TestCase):
 
     def test_edit_post(self):
         """Валидная форма изменяет запись в Post."""
-        ANOTHER_GROUP_TITLE = 'Другая тестовая группа'
-        ANOTHER_GROUP_SLUG = 'new-slug'
-        ANOTHER_GROUP_DESCRIPTION = 'Новое описание'
-        ANOTHER_POST_TEXT = 'Новый текст'
-
-        group_2 = Group.objects.create(
-            title=ANOTHER_GROUP_TITLE,
-            slug=ANOTHER_GROUP_SLUG,
-            description=ANOTHER_GROUP_DESCRIPTION,
-        )
-
         self.authorized_creator = Client()
         self.authorized_creator.force_login(self.creator)
 
         form_data = {
-            'text': ANOTHER_POST_TEXT,
-            'group': group_2.pk,
+            'text': c.ANOTHER_POST_TEXT,
+            'group': self.another_group.pk,
         }
 
         response = self.authorized_creator.post(
-            reverse('posts:edit', kwargs={'post_id': self.post.group.id}),
+            reverse(c.URL_POST_EDIT, kwargs={'post_id': self.post.group.id}),
             data=form_data,
             follow=True
         )
         post_edit = Post.objects.get(id=self.post.group.id)
         self.assertEqual(response.status_code, HTTPStatus.OK)
-        self.assertEqual(post_edit.text, ANOTHER_POST_TEXT)
+        self.assertEqual(post_edit.text, c.ANOTHER_POST_TEXT)
