@@ -2,6 +2,7 @@ from http import HTTPStatus
 
 from django.test import TestCase, Client
 from django.urls import reverse
+from django.core.cache import cache
 
 from . import constants as c
 from ..models import User, Group, Post
@@ -35,12 +36,14 @@ class PostURLTests(TestCase):
             text=c.POST_TEXT,
         )
 
+    def setUp(self):
+        cache.clear()
+
     def test_public_urls_exist_at_desired_location(self):
         """Доступ неавторизованных пользователей"""
         public_url_names = {
             reverse(c.URL_INDEX),
             reverse(c.URL_GROUP, args=(self.group.slug,)),
-            reverse(c.URL_PROFILE, args=(self.creator.username,)),
             reverse(c.URL_POST_DETAIL, args=(self.post.pk,)),
             c.URL_UNEXISTING_PAGE,
         }

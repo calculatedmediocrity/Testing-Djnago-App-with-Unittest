@@ -1,16 +1,34 @@
 from http import HTTPStatus
+import shutil
+import tempfile
 
-from django.test import Client, TestCase
+from django.test import Client, TestCase, override_settings
 from django.urls import reverse
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.conf import settings
 
 from . import constants as c
 from ..models import Group, Post, User
 
+TEMP_MEDIA_ROOT = tempfile.mkdtemp(dir=settings.BASE_DIR)
 
+
+@override_settings(MEDIA_ROOT=TEMP_MEDIA_ROOT)
 class PostFormsTests(TestCase):
+    @classmethod
+    def tearDownClass(cls):
+        super().tearDownClass()
+        shutil.rmtree(TEMP_MEDIA_ROOT, ignore_errors=True)
+
     @classmethod
     def setUpClass(cls):
         super().setUpClass()
+        cls.image = SimpleUploadedFile(
+            name=c.GIF_NAME,
+            content=c.GIF_CONTENT,
+            content_type=c.GIF_CONTENT_TYPE
+        )
+
         cls.creator = User.objects.create_user(
             username=c.USERNAME
         )
@@ -31,6 +49,7 @@ class PostFormsTests(TestCase):
             author=cls.creator,
             text=c.POST_TEXT,
             group=cls.group,
+            image=cls.image
         )
 
     def test_create_post(self):
@@ -42,6 +61,7 @@ class PostFormsTests(TestCase):
         form_data = {
             'text': self.post.text,
             'group': self.post.group.id,
+            'image': self.post.image,
         }
         response = self.authorized_creator.post(
             reverse(c.URL_POST_CREATE),
@@ -57,7 +77,10 @@ class PostFormsTests(TestCase):
         )
         self.assertEqual(Post.objects.count(), post_count + 1)
         self.assertTrue(
-            Post.objects.filter(text=c.POST_TEXT).exists()
+            Post.objects.filter(
+                text=c.POST_TEXT,
+                image=form_data['image']
+            ).exists(),
         )
 
     def test_edit_post(self):

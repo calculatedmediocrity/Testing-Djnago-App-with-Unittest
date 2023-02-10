@@ -1,6 +1,8 @@
 USERNAME = 'username'
 VIEWER_USERNAME = 'viewer_name'
 CREATOR_USERNAME = 'creator_name'
+COMMENTATOR_USERNAME = 'commentator_name'
+GUEST_NAME = 'guest_name'
 GROUP_TITLE = 'Тестовая группа'
 GROUP_SLUG = 'test-group'
 GROUP_DESCRIPTION = 'Тестовое описание'
@@ -9,6 +11,17 @@ ANOTHER_GROUP_SLUG = 'another-test-group'
 ANOTHER_GROUP_DESCRIPTION = 'Другое тестовое описание'
 POST_TEXT = 'Тестовый пост'
 ANOTHER_POST_TEXT = 'Другой текст'
+COMMENT_TEXT = 'Текст комментария'
+GIF_NAME = 'small.gif'
+GIF_CONTENT = (
+    b'\x47\x49\x46\x38\x39\x61\x02\x00'
+    b'\x01\x00\x80\x00\x00\x00\x00\x00'
+    b'\xFF\xFF\xFF\x21\xF9\x04\x00\x00'
+    b'\x00\x00\x00\x2C\x00\x00\x00\x00'
+    b'\x02\x00\x01\x00\x00\x02\x02\x0C'
+    b'\x0A\x00\x3B'
+)
+GIF_CONTENT_TYPE = 'image/gif'
 
 TOTAL_POST_QTY = 13
 POST_QTY_ON_SECOND_PAGE = 3
@@ -19,9 +32,11 @@ URL_PROFILE = 'posts:profile'
 URL_POST_DETAIL = 'posts:post_detail'
 URL_POST_CREATE = 'posts:post_create'
 URL_POST_EDIT = 'posts:edit'
+URL_POST_ADD_COMMENT = 'posts:add_comment'
 URL_REDIRECT_FROM_CREATE = '/auth/login/?next=/create/'
 URL_REDIRECT_FROM_EDIT = '/auth/login/?next=/posts/1/edit/'
 URL_UNEXISTING_PAGE = '/unexisting_page/'
+
 
 TEMPLATE_INDEX = 'posts/index.html'
 TEMPLATE_GROUP = 'posts/group_list.html'
